@@ -7,7 +7,7 @@ namespace dot_pro_reader
     {
         static double MercatorLat(double lat) {
             lat = lat * Math.Atan2(1, 1) / 90;
-		    double mLat = Math.Log(Math.Tan(lat + Math.Atan2(1, 1)));
+		    double mLat = Math.Log(Math.Tan(0.5 * lat + Math.Atan2(1, 1)));
             mLat = 90 * mLat / Math.Atan2(1, 1);
 		    return mLat;
 	    }
@@ -46,7 +46,7 @@ namespace dot_pro_reader
                 Console.WriteLine($"Мили: {startMili}");
 
                 reader.ReadBytes(42);
-
+                //72
                 var typeProjection = reader.ReadUInt16();
                 var stringCount = reader.ReadUInt16();
                 var pixelsInString = reader.ReadUInt16();
@@ -56,7 +56,7 @@ namespace dot_pro_reader
                 var sizeLongtitude = reader.ReadSingle();
                 var stepLatitude = reader.ReadSingle();
                 var stepLongtitude = reader.ReadSingle();
-
+                //102
                 string nameProjection = "";
                 if (typeProjection == 1)
                 {
@@ -80,22 +80,28 @@ namespace dot_pro_reader
                 Console.WriteLine($"Шаг по широте: {stepLatitude}");
                 Console.WriteLine($"Шаг по долготе: {stepLongtitude}");
 
-                //Console.Write("Введите индекс x: ");
-                //int.TryParse(Console.ReadLine(), out int x);
-                //Console.Write("Введите индекс y: ");
-                //int.TryParse(Console.ReadLine(), out int y);
-                //
-                //y = stringCount - y - 1;
-                //var resLon = longitude + x * sizeLongtitude / (pixelsInString - 1);
-                //double min_lat = (typeProjection == 1) ? MercatorLat(latitude) : latitude;
-                //double max_lat = (typeProjection == 1) ? MercatorLat(latitude + sizeLatitude) : latitude + sizeLatitude;
-                //double resLat = min_lat + y * (max_lat - min_lat) / (pixelsInString - 1);
-                //resLat = (typeProjection == 2) ? UnmercatorLat(resLat) : resLat;
-                //Console.WriteLine($"Широта: {resLat}, Долгота: {resLon}");
+                Console.Write("Введите индекс x: ");
+                int.TryParse(Console.ReadLine(), out int x);
+                Console.Write("Введите индекс y: ");
+                int.TryParse(Console.ReadLine(), out int y);
+                
+                y = stringCount - y - 1;
+                var resLon = longitude + x * sizeLongtitude / (pixelsInString - 1);
+                double min_lat = (typeProjection == 1) ? MercatorLat(latitude) : latitude;
+                double max_lat = (typeProjection == 1) ? MercatorLat(latitude + sizeLatitude) : latitude + sizeLatitude;
+                double resLat = min_lat + y * (max_lat - min_lat) / (pixelsInString - 1);
+                resLat = (typeProjection == 2) ? UnmercatorLat(resLat) : resLat;
+                Console.WriteLine($"Широта: {resLat}, Долгота: {resLon}");
+
+                reader.ReadBytes(410);
+                int index = (x + (pixelsInString * y));
+                reader.ReadBytes(index * 2);
+                int bright = reader.ReadUInt16();
+                Console.WriteLine($"Яркость: {bright}");
 
                 Console.Write("Введите широту: ");
                 double.TryParse(Console.ReadLine(), out double finLat);
-                Console.Write("Введите долготоу: ");
+                Console.Write("Введите долготу: ");
                 double.TryParse(Console.ReadLine(), out double finLong);
 
                 double column = (finLong - longitude) / (sizeLongtitude / (pixelsInString - 1));
