@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Text;
 
 namespace dot_pro_reader
 {
@@ -42,6 +43,53 @@ namespace dot_pro_reader
         private double stepLongtitude;
 
         private UInt16[] pixelsBright;
+
+        public static double MercatorLat(double lat)
+        {
+            lat = lat * Math.Atan2(1, 1) / 90;
+            var result = Math.Log(Math.Tan(0.5 * lat + Math.Atan2(1, 1)));
+            result = 90 * result / Math.Atan2(1, 1);
+            return result;
+        }
+
+        public static double UnmercatorLat(double mercatorLatitude)
+        {
+            mercatorLatitude = mercatorLatitude * Math.Atan2(1, 1) / 90;
+            var result = 2.0 * (Math.Atan(Math.Exp(mercatorLatitude)) - Math.Atan2(1, 1));
+            result = 90 * result / Math.Atan2(1, 1);
+            return result;
+        }
+
+        public void PrintPasportData()
+        { 
+            string projectionName = "";
+            switch (projectionType)
+            {
+                case ProjectionType.Equirectangular:
+                    projectionName = "Меркаторская";
+                    break;
+                case ProjectionType.Mercator:
+                    projectionName = "Равнопромежуточная";
+                    break;
+            }
+
+            Console.WriteLine($"Тип формата FFh1: {FFh1}");
+            Console.WriteLine($"Название ИС3: {new string(IS3name)}");
+            Console.WriteLine($"Идентификатор ИС3: {IS3id}");
+            Console.WriteLine($"Номер витка: {coilNumber}");
+            Console.WriteLine($"Год: {startYear}");
+            Console.WriteLine($"День: {startDay}");
+            Console.WriteLine($"Мили: {startMili}");
+            Console.WriteLine($"Тип проекции: {projectionName}");
+            Console.WriteLine($"Количество строк: {stringCount}");
+            Console.WriteLine($"Количество пискелей в строке: {pixelsInString}");
+            Console.WriteLine($"Широта: {latitude}");
+            Console.WriteLine($"Долгота: {longitude}");
+            Console.WriteLine($"Размер по широте: {sizeLatitude}");
+            Console.WriteLine($"Размер по долготе: {sizeLongtitude}");
+            Console.WriteLine($"Шаг по широте: {stepLatitude}");
+            Console.WriteLine($"Шаг по долготе: {stepLongtitude}");
+        }
 
         public void Read(string fileName)
         {
@@ -97,10 +145,10 @@ namespace dot_pro_reader
         {
             y = stringCount - y - 1;
             var resultLongtitude = longitude + x * sizeLongtitude / (pixelsInString - 1);
-            var minLatitude = (projectionType == ProjectionType.Mercator) ? MercatorLat(latitude) : latitude;
-            var maxLatitude = (projectionType == ProjectionType.Mercator) ? MercatorLat(latitude + sizeLatitude) : latitude + sizeLatitude;
+            var minLatitude = projectionType == ProjectionType.Mercator ? MercatorLat(latitude) : latitude;
+            var maxLatitude = projectionType == ProjectionType.Mercator ? MercatorLat(latitude + sizeLatitude) : latitude + sizeLatitude;
             var resultLatitide = minLatitude + y * (maxLatitude - minLatitude) / (pixelsInString - 1);
-            resultLatitide = (projectionType == ProjectionType.Equirectangular) ? UnmercatorLat(resultLatitide) : resultLatitide;
+            resultLatitide = projectionType == ProjectionType.Equirectangular ? UnmercatorLat(resultLatitide) : resultLatitide;
             return new Coords(resultLongtitude, resultLatitide);
         }
 
@@ -133,22 +181,6 @@ namespace dot_pro_reader
         {
             return pixelsBright[(x + (pixelsInString * (stringCount - y - 1)))];
         }
-
-        public static double MercatorLat(double lat)
-        {
-            lat = lat * Math.Atan2(1, 1) / 90;
-            var result = Math.Log(Math.Tan(0.5 * lat + Math.Atan2(1, 1)));
-            result = 90 * result / Math.Atan2(1, 1);
-            return result;
-        }
-
-        public static double UnmercatorLat(double mercatorLatitude)
-        {
-            mercatorLatitude = mercatorLatitude * Math.Atan2(1, 1) / 90;
-            var result = 2.0 * (Math.Atan(Math.Exp(mercatorLatitude)) - Math.Atan2(1, 1));
-            result = 90 * result / Math.Atan2(1, 1);
-            return result;
-        }
     }
 
     class Program
@@ -157,6 +189,7 @@ namespace dot_pro_reader
         {
             var fileProReader = new FileProReader();
             fileProReader.Read("20040916_081954_NOAA_15.m.pro");
+            fileProReader.PrintPasportData();
 
             Console.Write("Введите индекс x: ");
             int.TryParse(Console.ReadLine(), out int x);
